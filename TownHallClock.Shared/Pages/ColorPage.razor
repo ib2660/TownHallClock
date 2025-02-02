@@ -1,0 +1,30 @@
+﻿@page "/color"
+@using TownHallClock.Shared.Model
+@using TownHallClock.Shared.Services
+@inject IWatch Watch
+<div class="main" style="background-color: @bgcolor">
+    <h3>ColorPage</h3>
+
+    <p>The background color of this page changes every five seconds.</p>
+    <p>Time is: @Watch.GetTime()</p>
+</div>
+@code {
+    private string bgcolor = "white";
+    protected override void OnInitialized()
+    {
+        Watch.OnTimeChanged += AdjustBackColor;
+    }
+
+    private void AdjustBackColor(object sender, TimeEventArgs e)
+    {
+        if (e.Time.Second % 5 == 0)
+        {
+            bgcolor = "lightblue";
+        }
+        else
+        {
+            bgcolor = "lightgreen";
+        }
+        InvokeAsync(() => StateHasChanged());
+    }
+}

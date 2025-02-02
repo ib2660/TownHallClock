@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:local="clr-namespace:TownHallClock"
+            xmlns:shared="clr-namespace:TownHallClock.Shared.Pages;assembly=TownHallClock.Shared"
+            x:Class="TownHallClock.MainPage"
+            BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <TabbedPage.Children>
+        <ContentPage Title="TownHall Clock">
+            <BlazorWebView HostPage="wwwroot/index.html">
+                <BlazorWebView.RootComponents>
+                    <RootComponent Selector="#app" ComponentType="{x:Type shared:Home}" />
+                </BlazorWebView.RootComponents>
+            </BlazorWebView>
+        </ContentPage>
+        <ContentPage Title="Color Shift Page">
+            <BlazorWebView HostPage="wwwroot/index.html">
+                <BlazorWebView.RootComponents>
+                    <RootComponent Selector="#app" ComponentType="{x:Type shared:ColorPage}" />
+                </BlazorWebView.RootComponents>
+            </BlazorWebView>
+        </ContentPage>
+    </TabbedPage.Children>
+
+</TabbedPage>

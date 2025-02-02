@@ -1,0 +1,135 @@
+﻿@page "/"
+@using TownHallClock
+@using TownHallClock.Shared.Model
+@using TownHallClock.Shared.Services
+@using TownHallClock.Shared.Components
+@inject IFormFactor FormFactor
+@inject IWatch Watch
+
+<PageTitle>The Town Hall Clock</PageTitle>
+
+<div class="container">
+    <div class="left-pane">
+        <h1>Town Hall Clock</h1>
+        <!-- SVG for Town Hall Tower with Clock -->
+        <svg width="200" height="400" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+            <!-- Tower -->
+            <rect x="75" y="100" width="50" height="300" fill="gray" />
+            <!-- Roof -->
+            <polygon points="50,100 100,50 150,100" fill="darkgray" />
+            <!-- Clock -->
+            <circle cx="100" cy="130" r="18" fill="white" stroke="black" stroke-width="1" />
+            <!-- Tick Marks -->
+            @for (int i = 0; i < 12; i++)
+            {
+                <line x1="100" y1="112" x2="100" y2="116" stroke="black" stroke-width="1" transform="rotate(@(i * 30) 100 130)" />
+            }
+            <!-- Clock Hands -->
+            @if (TryGetClockHandCoordinates(out var hourHand, out var minuteHand))
+            {
+                <line x1="100" y1="130" x2="@((int)hourHand.X)" y2="@((int)hourHand.Y)" stroke="black" stroke-width="3" />
+                <line x1="100" y1="130" x2="@((int)minuteHand.X)" y2="@((int)minuteHand.Y)" stroke="black" stroke-width="2" />
+            }
+            <!-- Center Pivot -->
+            <circle cx="100" cy="130" r="2" fill="black" />
+        </svg>
+    </div>
+    <div class="right-pane">
+        <div class="input-container">
+            <div>
+                <label id="alarmSetting">Enter a time for the alarm:</label>
+            </div>
+            <div>
+                <input type="text" id="alarmSetting" name="alarmTimeString" @bind="alarmTimeString" class="styled-input" />
+            </div>
+            <div>
+                <FluentButton Appearance="Appearance.Accent" @onclick="SetAlarm">Set the alarm</FluentButton>
+            </div>
+        </div>
+        <br />
+
+        @if (alarmTriggered)
+        {
+            <div class="centered-content">
+                <div class="alarm-notification-box">
+                    <AlarmNotification AlarmTime="alarmTime" />
+                </div>
+            </div>
+            <br />
+        }
+    </div>
+</div>
+
+
+@code {
+    private string factor => FormFactor.GetFormFactor();
+    private string platform => FormFactor.GetPlatform();
+    private string alarmTimeString { get; set; } = string.Empty;
+    private TimeOnly alarmTime { get; set; }
+    private bool alarmTriggered { get; set; } = false;
+    private Timer? timer;
+    private string currentTime = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        currentTime = DateTime.Now.ToString("HH:mm:ss");
+        timer = new Timer(UpdateCurrentTime, null, 0, 1000);
+    }
+
+    private void UpdateCurrentTime(object? state)
+    {
+        currentTime = DateTime.Now.ToString("HH:mm:ss");
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SetAlarm(MouseEventArgs e)
+    {
+        alarmTriggered = false;
+        if (TimeOnly.TryParse(alarmTimeString, out var parsedTime))
+        {
+            alarmTime = parsedTime;
+            Watch.SetAlarm(alarmTime);
+            Watch.OnAlarm += AlarmTime;
+            Watch.Run();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool TryGetClockHandCoordinates(out (double X, double Y) hourHand, out (double X, double Y) minuteHand)
+    {
+        hourHand = (0, 0);
+        minuteHand = (0, 0);
+
+        var now = DateTime.Now;
+        var hours = now.Hour % 12;
+        var minutes = now.Minute;
+
+        var hourAngle = (hours + minutes / 60.0) * 30; // 360 degrees / 12 hours
+        var minuteAngle = minutes * 6; // 360 degrees / 60 minutes
+
+        hourHand = GetHandCoordinates(hourAngle, 10); // Shorter hand for hours
+        minuteHand = GetHandCoordinates(minuteAngle, 15); // Longer hand for minutes
+
+        return true;
+    }
+
+    private (double X, double Y) GetHandCoordinates(double angle, double length)
+    {
+        var radians = (Math.PI / 180) * (angle - 90); // Convert to radians and adjust for SVG coordinate system
+        var x = 100 + length * Math.Cos(radians); // 100 is the center x-coordinate of the clock
+        var y = 130 + length * Math.Sin(radians); // 130 is the center y-coordinate of the clock
+        return (x, y);
+    }
+
+    private void AlarmTime(object sender, TimeEventArgs e)
+    {
+        alarmTriggered = true;
+        Watch.Stop();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}
